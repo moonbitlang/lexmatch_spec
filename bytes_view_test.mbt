@@ -58,13 +58,12 @@ test "BytesView - tab" {
 test "BytesView - with rest variable" {
   let bytes = b"hello world"
   lexmatch bytes with longest {
-    ("hello", rest) => {
+    ("hello", rest) =>
       if rest == " world" {
         ()
       } else {
         fail("Rest should be ' world'")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -73,13 +72,12 @@ test "BytesView - with rest variable" {
 test "BytesView - capture pattern" {
   let bytes = b"test123"
   lexmatch bytes with longest {
-    (("[a-z]+" as word), _) => {
+    ("[a-z]+" as word, _) =>
       if word == "test" {
         ()
       } else {
         fail("Should capture 'test'")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -151,13 +149,12 @@ test "BytesView - binary data pattern" {
 test "BytesView - mixed alphanumeric" {
   let bytes = b"abc123xyz"
   lexmatch bytes with longest {
-    ("[a-z]+", rest) => {
-      if rest== "123xyz" {
+    ("[a-z]+", rest) =>
+      if rest == "123xyz" {
         ()
       } else {
         fail("Should match letters then digits")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -238,13 +235,12 @@ test "BytesView - single byte" {
 test "BytesView - word boundary simulation" {
   let bytes = b"word1 word2"
   lexmatch bytes with longest {
-    ("\w+", rest) => {
-      if rest== " word2" {
+    ("\w+", rest) =>
+      if rest == " word2" {
         ()
       } else {
         fail("Should match first word")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -262,7 +258,19 @@ test "BytesView - sequence pattern" {
 test "BytesView - MAC address" {
   let bytes = b"AA:BB:CC:DD:EE:FF"
   lexmatch bytes with longest {
-    ("[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}") => ()
+    (
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+    ) => ()
     _ => fail("Should match MAC address in bytes")
   }
 }
@@ -298,13 +306,12 @@ test "BytesView - git commit hash" {
 test "BytesView - multiple captures" {
   let bytes = b"123abc"
   lexmatch bytes with longest {
-    (("\d+" as num) ("[a-z]+" as letters)) => {
-      if num== "123" && letters== "abc" {
+    (("\d+" as num) ("[a-z]+" as letters)) =>
+      if num == "123" && letters == "abc" {
         ()
       } else {
         fail("Should capture both parts")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -331,7 +338,17 @@ test "BytesView - timestamp" {
 test "BytesView - UUID" {
   let bytes = b"550e8400-e29b-41d4-a716-446655440000"
   lexmatch bytes with longest {
-    ("[\da-f]{8}" "-" "[\da-f]{4}" "-" "[\da-f]{4}" "-" "[\da-f]{4}" "-" "[\da-f]{12}") => ()
+    (
+      "[\da-f]{8}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{12}"
+    ) => ()
     _ => fail("Should match UUID in bytes")
   }
 }
@@ -484,13 +501,12 @@ test "BytesView - SQL statement" {
 test "BytesView - regex escape test" {
   let bytes = b"test\\"
   lexmatch bytes with longest {
-    ("[a-z]+", rest) => {
-      if rest== "\\" {
+    ("[a-z]+", rest) =>
+      if rest == "\\" {
         ()
       } else {
         fail("Should handle backslash in bytes")
       }
-    }
     _ => fail("Should match")
   }
 }

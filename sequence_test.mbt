@@ -163,7 +163,19 @@ test "File extension sequence" {
 ///|
 test "MAC address sequence" {
   lexmatch "AA:BB:CC:DD:EE:FF" {
-    ("[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}") => ()
+    (
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+    ) => ()
     _ => fail("Should match MAC address")
   }
 }
@@ -299,7 +311,17 @@ test "Credit card sequence (simplified)" {
 ///|
 test "UUID sequence" {
   lexmatch "550e8400-e29b-41d4-a716-446655440000" {
-    ("[\da-f]{8}" "-" "[\da-f]{4}" "-" "[\da-f]{4}" "-" "[\da-f]{4}" "-" "[\da-f]{12}") => ()
+    (
+      "[\da-f]{8}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{12}"
+    ) => ()
     _ => fail("Should match UUID")
   }
 }

@@ -155,13 +155,12 @@ test "(?i:...) - email username" {
 ///|
 test "(?i:...) - with capture" {
   lexmatch "Hello" {
-    (("(?i:hello)" as word)) => {
+    ("(?i:hello)" as word) =>
       if word.to_string() == "Hello" {
         ()
       } else {
         fail("Should capture original case")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -177,13 +176,12 @@ test "(?i:...) - URL scheme" {
 ///|
 test "(?i:...) - with rest variable" {
   lexmatch "TEST123" with longest {
-    ("(?i:test)", rest) => {
+    ("(?i:test)", rest) =>
       if rest.to_string() == "123" {
         ()
       } else {
         fail("Rest should be '123'")
       }
-    }
     _ => fail("Should match")
   }
 }

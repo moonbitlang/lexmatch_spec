@@ -405,13 +405,12 @@ test "(?i:...) - case insensitive modifier" {
 ///|
 test "Capture with 'as' keyword" {
   lexmatch "hello" {
-    ("hello" as captured) => {
+    ("hello" as captured) =>
       if captured.to_string() == "hello" {
         ()
       } else {
         fail("Captured value should be 'hello'")
       }
-    }
     _ => fail("Should match and capture")
   }
 }
@@ -419,14 +418,13 @@ test "Capture with 'as' keyword" {
 ///|
 test "Capture single character returns Char" {
   lexmatch "+" {
-    ("[+\-]" as sign) => {
+    ("[+\-]" as sign) =>
       // sign should be a Char type when matching single character
       if sign == '+' {
         ()
       } else {
         fail("Should capture + character")
       }
-    }
     _ => fail("Should match sign character")
   }
 }
@@ -446,13 +444,12 @@ test "Sequence pattern" {
 ///|
 test "Pattern with rest variable" {
   lexmatch "hello world" {
-    ("hello" as word, rest) => {
+    ("hello" as word, rest) =>
       if word.to_string() == "hello" && rest.to_string() == " world" {
         ()
       } else {
         fail("Should capture word and rest correctly")
       }
-    }
     _ => fail("Should match pattern with rest")
   }
 }
@@ -460,13 +457,12 @@ test "Pattern with rest variable" {
 ///|
 test "Pattern with rest using longest strategy" {
   lexmatch "abc123def" with longest {
-    ("[a-z]+", rest) => {
+    ("[a-z]+", rest) =>
       if rest.to_string() == "123def" {
         ()
       } else {
         fail("Should match longest letters prefix")
       }
-    }
     _ => fail("Should match with longest strategy")
   }
 }
@@ -510,13 +506,12 @@ test "Complex pattern - identifier matching" {
 ///|
 test "Multiple captures in sequence" {
   lexmatch "123abc" {
-    (("\d+" as num) ("[a-z]+" as word)) => {
+    (("\d+" as num) ("[a-z]+" as word)) =>
       if num.to_string() == "123" && word.to_string() == "abc" {
         ()
       } else {
         fail("Should capture both number and word")
       }
-    }
     _ => fail("Should match pattern")
   }
 }

@@ -14,7 +14,7 @@ lexmatch 特性在 MoonBit 中分为 `lexmatch` 表达式和 `lexmatch?` 表达�
 
 #### 单词计数
 
-```moonbit
+```mbt check
 ///|
 pub fn wordcount(
   input : BytesView,
@@ -37,7 +37,7 @@ pub fn wordcount(
 
 #### 可下载协议提取器
 
-```moonbit
+```mbt check
 ///|
 pub fn downloadable_protocol(url: StringView) -> StringView? {
   if url lexmatch? (("(?i:ftp|http(s)?)" as protocol) "://", _) with longest {
@@ -137,7 +137,7 @@ pub fn downloadable_protocol(url: StringView) -> StringView? {
 
 #### 在字符串中搜索标记
 
-```moonbit
+```mbt check
 pub fn search_marker(str: StringView) -> StringView? {
   for curr = str {
     lexmatch curr with longest {

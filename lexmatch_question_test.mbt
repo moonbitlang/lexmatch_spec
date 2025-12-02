@@ -47,7 +47,7 @@ test "lexmatch? - with rest variable" {
 ///|
 test "lexmatch? - with capture" {
   let text = "test123"
-  let result = text lexmatch? (("[a-z]+" as _word), _) with longest
+  let result = text lexmatch? ("[a-z]+" as _word, _) with longest
   if result {
     ()
   } else {
@@ -73,7 +73,6 @@ test "lexmatch? - email validation" {
   } else {
     fail("Should match email pattern")
   }
-
   let invalid = "notanemail"
   if not(invalid lexmatch? ("\w+" "@" "\w+" "\." "\w+") with longest) {
     ()
@@ -90,7 +89,6 @@ test "lexmatch? - URL protocol check" {
   } else {
     fail("Should match URL")
   }
-
   let url2 = "ftp://server.com"
   if url2 lexmatch? ("[a-z]+" "://" ".*") with longest {
     ()
@@ -148,7 +146,8 @@ test "lexmatch? - phone number validation" {
 ///|
 test "lexmatch? - IP address validation" {
   let ip = "192.168.1.1"
-  if ip lexmatch? ("\d{1,3}" "\." "\d{1,3}" "\." "\d{1,3}" "\." "\d{1,3}") with longest {
+  if ip
+    lexmatch? ("\d{1,3}" "\." "\d{1,3}" "\." "\d{1,3}" "\." "\d{1,3}") with longest {
     ()
   } else {
     fail("Should match IP address")
@@ -163,7 +162,6 @@ test "lexmatch? - hex color validation" {
   } else {
     fail("Should match hex color")
   }
-
   let color2 = "#FFF"
   if color2 lexmatch? ("#" "[0-9A-Fa-f]{3}") with longest {
     ()
@@ -205,7 +203,18 @@ test "lexmatch? - version string validation" {
 ///|
 test "lexmatch? - UUID validation" {
   let uuid = "550e8400-e29b-41d4-a716-446655440000"
-  if uuid lexmatch? ("[\da-f]{8}" "-" "[\da-f]{4}" "-" "[\da-f]{4}" "-" "[\da-f]{4}" "-" "[\da-f]{12}") with longest {
+  if uuid
+    lexmatch? (
+      "[\da-f]{8}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{4}"
+      "-"
+      "[\da-f]{12}"
+    ) with longest {
     ()
   } else {
     fail("Should match UUID format")
@@ -215,7 +224,20 @@ test "lexmatch? - UUID validation" {
 ///|
 test "lexmatch? - MAC address validation" {
   let mac = "AA:BB:CC:DD:EE:FF"
-  if mac lexmatch? ("[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}" ":" "[\dA-Fa-f]{2}") with longest {
+  if mac
+    lexmatch? (
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+      ":"
+      "[\dA-Fa-f]{2}"
+    ) with longest {
     ()
   } else {
     fail("Should match MAC address")
@@ -230,7 +252,6 @@ test "lexmatch? - identifier validation" {
   } else {
     fail("Should match identifier")
   }
-
   let id2 = "123invalid"
   if not(id2 lexmatch? "[a-zA-Z_]\w*" with longest) {
     ()
@@ -263,7 +284,6 @@ test "lexmatch? - number format check" {
   } else {
     fail("Should match integer")
   }
-
   let float_num = "3.14"
   if float_num lexmatch? ("\d+" "\." "\d+") with longest {
     ()
@@ -388,7 +408,6 @@ test "lexmatch? - whitespace check" {
   } else {
     fail("Should match whitespace")
   }
-
   let nospace = "abc"
   if not(nospace lexmatch? "\s+" with longest) {
     ()
@@ -415,7 +434,6 @@ test "lexmatch? - exact match only" {
   } else {
     fail("Should match exactly")
   }
-
   if not(text lexmatch? "hello world" with longest) {
     ()
   } else {
@@ -546,7 +564,8 @@ test "lexmatch? - markdown heading check" {
 ///|
 test "lexmatch? - method chaining" {
   let code = "obj.method1().method2()"
-  if code lexmatch? ("\w+" "\." "\w+" "\(" "\)" "\." "\w+" "\(" "\)") with longest {
+  if code
+    lexmatch? ("\w+" "\." "\w+" "\(" "\)" "\." "\w+" "\(" "\)") with longest {
     ()
   } else {
     fail("Should match method chaining")
@@ -566,7 +585,8 @@ test "lexmatch? - array index check" {
 ///|
 test "lexmatch? - ternary operator check" {
   let ternary = "a ? b : c"
-  if ternary lexmatch? ("\w" "\s*" "\?" "\s*" "\w" "\s*" ":" "\s*" "\w") with longest {
+  if ternary
+    lexmatch? ("\w" "\s*" "\?" "\s*" "\w" "\s*" ":" "\s*" "\w") with longest {
     ()
   } else {
     fail("Should match ternary operator")
@@ -614,7 +634,6 @@ test "lexmatch? - combining multiple checks" {
   } else {
     fail("Should validate email")
   }
-
   if not(is_valid_email("invalid")) {
     ()
   } else {
@@ -641,13 +660,11 @@ test "lexmatch? - protocol detection function" {
   } else {
     fail("Should detect HTTPS")
   }
-
   if get_protocol_type("http://example.com") == "insecure" {
     ()
   } else {
     fail("Should detect HTTP")
   }
-
   if get_protocol_type("ftp://server.com") == "file-transfer" {
     ()
   } else {

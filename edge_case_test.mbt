@@ -14,13 +14,7 @@ test "Edge - empty string match" {
 test "Edge - empty pattern alternation" {
   let text = "hello"
   lexmatch text with longest {
-    rest => {
-      if rest == "hello" {
-        ()
-      } else {
-        fail("Rest should capture all")
-      }
-    }
+    rest => if rest == "hello" { () } else { fail("Rest should capture all") }
   }
 }
 
@@ -208,13 +202,12 @@ test "Edge - special chars in character class" {
 test "Edge - capture empty string" {
   let text = ""
   lexmatch text with longest {
-    ("" as captured) => {
+    ("" as captured) =>
       if captured == "" {
         ()
       } else {
         fail("Should capture empty")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -223,13 +216,12 @@ test "Edge - capture empty string" {
 test "Edge - rest variable with complete match" {
   let text = "hello"
   lexmatch text with longest {
-    ("hello", rest) => {
+    ("hello", rest) =>
       if rest == "" {
         ()
       } else {
         fail("Rest should be empty")
       }
-    }
     _ => fail("Should match")
   }
 }
@@ -238,13 +230,7 @@ test "Edge - rest variable with complete match" {
 test "Edge - rest variable only" {
   let text = "hello"
   lexmatch text with longest {
-    rest => {
-      if rest == "hello" {
-        ()
-      } else {
-        fail("Rest should capture all")
-      }
-    }
+    rest => if rest == "hello" { () } else { fail("Rest should capture all") }
   }
 }
 
