@@ -139,7 +139,7 @@ for curr = log[:] {
 
   - **Bare regex**: Matches the entire target (both start and end anchored)
   - **Two-part**: Matches a prefix of the target; `rest` binds to the remaining suffix
-  - **Three-part**: `prefix` skips content before `regex`; `rest` binds to the suffix after `regex`. **Note:** This form is only available without `with longest`.
+  - **Three-part**: `prefix` binds to the content skipped before `regex`; `rest` binds to the suffix after `regex`. **Note:** This form is only available without `with longest`.
 
   The rest variable can be a variable name or wildcard `_`.
 
@@ -199,19 +199,23 @@ inspect(matched, content="false") // digits not at start
 **Note:** Three-part form is only available without `with longest`:
 
 ```mbt test
-// Three-part: skip prefix, find pattern anywhere (no 'with longest')
+  // Three-part: prefix binds the skipped content, find pattern anywhere (no 'with longest')
 lexmatch "hello ERROR123 world" {
-  (_, "ERROR" ("\d+" as code), rest) => {
+  (prefix, "ERROR" ("\d+" as code), rest) => {
+    inspect(prefix, content="hello ")
     inspect(code, content="123")
     inspect(rest, content=" world")
   }
-  _ => fail("should match")
+  _ => fail("should not match")
 }
 
 // Three-part can find pattern in middle of string
 lexmatch "prefix>>>MARKER<<<suffix" {
-  (_, "MARKER", rest) => inspect(rest, content="<<<suffix")
-  _ => fail("should match")
+  (prefix, "MARKER", rest) => {
+    inspect(prefix, content="prefix>>>")
+    inspect(rest, content="<<<suffix")
+  }
+  _ => fail("should not match")
 }
 ```
 
@@ -228,7 +232,8 @@ lexmatch "hello world" {
 
 // Three-part form is available in default mode
 lexmatch "abc123def" {
-  (_, "\d+" as digits, rest) => {
+  (prefix, "\d+" as digits, rest) => {
+    inspect(prefix, content="abc")
     inspect(digits, content="123")
     inspect(rest, content="def")
   }
@@ -279,19 +284,39 @@ lexmatch "ifx" {
   - `\xhh`: Matches a character with hexadecimal value `hh` (`hh` is two hexadecimal digits)
   - `\uhhhh`: Matches a character with Unicode code point `hhhh` (`hhhh` is four hexadecimal digits). Note that this escape sequence is invalid when the target is `BytesView`.
   - `\u{h...}`: Matches a character with Unicode code point `h...` (`h...` is one or more hexadecimal digits). Note that this escape sequence is invalid when the target is `BytesView`.
-- **Character Classes**:
-  - `\s`: Matches any whitespace character in the ASCII range, equivalent to `[ \t\r\n\f\v]`
-  - `\S`: Matches any non-whitespace character in the ASCII range, equivalent to `[^ \t\r\n\f\v]`
-  - `\d`: Matches any digit character in the ASCII range, equivalent to `[0-9]`
-  - `\D`: Matches any non-digit character in the ASCII range, equivalent to `[^0-9]`
-  - `\w`: Matches any word character in the ASCII range, equivalent to `[a-zA-Z0-9_]`
-  - `\W`: Matches any non-word character in the ASCII range, equivalent to `[^a-zA-Z0-9_]`
-- **Character Sets**:
-  - `[abc]`: Matches character `a`, `b`, or `c`
-  - `[a-z]`: Matches any character from `a` to `z`
-  - `[^abc]`: Matches any character except `a`, `b`, and `c`
-  - `[^a-z]`: Matches any character not in the range `a` to `z`
-  - `[\d\s]`: Matches any digit or whitespace character
+  - **Character Classes (deprecated escapes and POSIX alternatives)**:
+    - Note: The common escape sequences `\s`, `\S`, `\d`, `\D`, `\w`, and `\W` are deprecated in `lexmatch` regexes. Use the POSIX-style classes below instead. All POSIX classes here operate on the ASCII range only.
+    - Supported POSIX character classes (only recognized inside a bracket expression `[...]`):
+      - `[:ascii:]` — ASCII characters U+0000..U+007F. Example: `[[:ascii:]]` matches any ASCII codepoint.
+      - `[:lower:]` — ASCII lowercase letters `a`–`z`. Example: `[[:lower:]]` matches `a`, `b`, ..., `z`.
+      - `[:upper:]` — ASCII uppercase letters `A`–`Z`. Example: `[[:upper:]]` matches `A`, `B`, ..., `Z`.
+      - `[:alpha:]` — ASCII letters, equivalent to `[[:lower:][:upper:]]`.
+      - `[:digit:]` — ASCII digits `0`–`9`. Example: `[[:digit:]]` matches `0`..`9`.
+      - `[:xdigit:]` — ASCII hexadecimal digits `0`–`9`, `A`–`F`, `a`–`f` (equivalent to `[0-9A-Fa-f]`).
+      - `[:alnum:]` — ASCII alphanumeric characters, equivalent to `[[:alpha:][:digit:]]`.
+      - `[:blank:]` — ASCII horizontal whitespace: space and tab (equivalent to `[ \t]`).
+      - `[:space:]` — ASCII whitespace characters (space, tab, newline, carriage return, form feed, vertical tab) — use for matching general ASCII whitespace.
+      - `[:word:]` — ASCII word characters, equivalent to `[A-Za-z0-9_]`.
+    - Important usage rule: POSIX classes are only recognized when placed inside a character class. Use `[[:digit:]]`, not `[:digit:]` alone; the latter is not a valid character class.
+    - Common mappings (for porting existing patterns):
+      - `\d`  → `[[:digit:]]`
+      - `\D`  → `[^[:digit:]]`
+      - `\s`  → `[[:space:]]`
+      - `\S`  → `[^[:space:]]`
+      - `\w`  → `[[:word:]]`
+      - `\W`  → `[^[:word:]]`
+    - Examples and tips:
+      - Match a single hex digit: `[[:xdigit:]]` (equivalent to `[0-9A-Fa-f]`).
+      - Match one or more ASCII letters: `[[:alpha:]]+`.
+      - Combine classes: `[[:alpha:][:digit:]]` matches any ASCII letter or digit (same as `[[:alnum:]]`).
+      - Negation: `[^[:space:]]` matches any character that is not ASCII whitespace.
+    - Rationale: restricting these classes to ASCII keeps `lexmatch` behavior predictable for `BytesView` targets and avoids locale/Unicode category complexity.
+  - **Character Sets**:
+    - `[abc]`: Matches character `a`, `b`, or `c`
+    - `[a-z]`: Matches any character from `a` to `z`
+    - `[^abc]`: Matches any character except `a`, `b`, and `c`
+    - `[^a-z]`: Matches any character not in the range `a` to `z`
+    - `[[:digit:][:space:]]`: Matches any digit or whitespace character (use POSIX classes inside the brackets)
 - **Quantifiers**:
   - `*`: Matches the preceding sub-expression zero or more times
   - `+`: Matches the preceding sub-expression one or more times
