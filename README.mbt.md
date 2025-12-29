@@ -47,11 +47,14 @@ pub fn wordcount(
   }
 }
 ```
-```mbt test
-inspect(
-  wordcount("Hello World\nThis is MoonBit.", 0, 0, 0),
-  content="(1, 5, 27)",
-)
+```mbt check
+///|
+test {
+  inspect(
+    wordcount("Hello World\nThis is MoonBit.", 0, 0, 0),
+    content="(1, 5, 27)",
+  )
+}
 ```
 The above example demonstrates how to use the `lexmatch` expression to perform lexical analysis on `input`, counting the number of lines, words, and characters. The patterns here include the ability to capture substrings, for example, the pattern `("[^ \t\r\n]+" as word, rest)` can match a sequence of non-whitespace characters and capture it as `word`.
 
@@ -68,9 +71,12 @@ pub fn downloadable_protocol(url : StringView) -> StringView? {
 }
 ```
 
-```mbt test
-@json.inspect(downloadable_protocol("https://example.com"), content=["https"])
-@json.inspect(downloadable_protocol("FTP://example.com"), content=["FTP"])
+```mbt check
+///|
+test {
+  @json.inspect(downloadable_protocol("https://example.com"), content=["https"])
+  @json.inspect(downloadable_protocol("FTP://example.com"), content=["FTP"])
+}
 ```
 
 This example demonstrates how to use the `lexmatch?` expression to check whether a `url` starts with a downloadable protocol (ftp, http, https) and capture that protocol. This also demonstrates the use of the case-insensitive modifier `(?i:...)`.
@@ -79,39 +85,44 @@ This example demonstrates how to use the `lexmatch?` expression to check whether
 
 This example shows how to use `lexmatch` to parse structured log data and extract error entries with their timestamps and messages. The pattern uses a wildcard prefix `_` to skip over non-matching content before finding `ERROR` lines.
 
-```mbt test
-let log =
-  #|INFO 2024-01-01 12:00:00 Starting service
-  #|ERROR 2024-01-01 12:05:00 Failed to start service
-  #|WARN 2024-01-01 12:10:00 Low memory
-  #|INFO 2024-01-01 12:15:00 Service started successfully
-  #|ERROR 2024-01-01 12:20:00 Service crashed unexpectedly
-  #|ERROR 2024-01-01 12:25:00 Failed to restart service
-let error_logs : Array[Json] = []
-for curr = log[:] {
-  lexmatch curr {
-    (
-      _,
-      "ERROR[ ]*"
-      ("\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}" as timestamp)
-      "[ ]*"
-      ("[^\n]*" as message)
-      "\n",
-      next
-    ) => {
-      error_logs.push({ "timestamp": timestamp, "message": message })
-      continue next
+```mbt check
+///|
+test {
+  let log =
+    #|INFO 2024-01-01 12:00:00 Starting service
+    #|ERROR 2024-01-01 12:05:00 Failed to start service
+    #|WARN 2024-01-01 12:10:00 Low memory
+    #|INFO 2024-01-01 12:15:00 Service started successfully
+    #|ERROR 2024-01-01 12:20:00 Service crashed unexpectedly
+    #|ERROR 2024-01-01 12:25:00 Failed to restart service
+  let error_logs : Array[Json] = []
+  for curr = log[:] {
+    lexmatch curr {
+      (
+        _,
+        "ERROR[ ]*"
+        (
+          "[[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2} [[:digit:]]{2}:[[:digit:]]{2}:[[:digit:]]{2}" as timestamp
+        )
+        "[ ]*"
+        ("[^\n]*" as message)
+        "\n",
+        next
+      ) => {
+        error_logs.push({ "timestamp": timestamp, "message": message })
+        continue next
+      }
+      _ => break
     }
-    _ => break
   }
+  @json.inspect(error_logs, content=[
+    { "timestamp": "2024-01-01 12:05:00", "message": "Failed to start service" },
+    {
+      "timestamp": "2024-01-01 12:20:00",
+      "message": "Service crashed unexpectedly",
+    },
+  ])
 }
-@json.inspect(error_logs, content=[
-  { "timestamp": "2024-01-01 12:05:00", "message": "Failed to start service" },
-  {
-    "timestamp": "2024-01-01 12:20:00",
-    "message": "Service crashed unexpectedly",
-  },
-])
 ```
 
 ### Core Concepts
@@ -123,7 +134,7 @@ for curr = log[:] {
 - **Match Strategy**: The strategy used to match patterns.
   - **Default** (without `with` clause): Uses first match semantics — branches are tried in order and the first matching branch is taken. This is the most common form for general string processing.
   - `with longest`: Uses longest match semantics — all branches are evaluated and the branch whose regex matches the **longest prefix** is selected. If multiple branches match the same length, the first one wins. This is primarily used for building **programming language lexers** where maximal munch is desired.
-  
+
 
 - **Catch-all case**: A branch whose left side is a variable or wildcard `_`, which can match any target. It must be placed at the end of the `lexmatch` branches to handle unmatched cases.
 
@@ -139,15 +150,15 @@ for curr = log[:] {
 
   - **Bare regex**: Matches the entire target (both start and end anchored)
   - **Two-part**: Matches a prefix of the target; `rest` binds to the remaining suffix
-  - **Three-part**: `prefix` skips content before `regex`; `rest` binds to the suffix after `regex`. **Note:** This form is only available without `with longest`.
+  - **Three-part**: `prefix` binds to the content skipped before `regex`; `rest` binds to the suffix after `regex`. **Note:** This form is only available without `with longest`.
 
   The rest variable can be a variable name or wildcard `_`.
 
   **Examples:**
   - `""` — matches empty string (entire target must be empty)
-  - `"\d+"` — matches if entire target consists of digits
-  - `("\d+", rest)` — matches digits at the start; `rest` gets the remainder
-  - `(_, "ERROR" ("\d+" as code), rest)` — finds "ERROR" followed by digits anywhere in the target; captures the digits as `code`
+  - `"[[:digit:]]+"` — matches if entire target consists of digits
+  - `("[[:digit:]]+", rest)` — matches digits at the start; `rest` gets the remainder
+  - `(_, "ERROR" ("[[:digit:]]+" as code), rest)` — finds "ERROR" followed by digits anywhere in the target; captures the digits as `code`
 
 #### Lex Pattern Forms - Examples
 
@@ -155,63 +166,76 @@ The following examples demonstrate the three lex pattern forms and their anchori
 
 **Bare regex (left + right anchored)** — must match the entire target:
 
-```mbt test
-// Bare regex matches entire target
-let result = if "12345" lexmatch? "\d+" {
-  "all digits"
-} else {
-  "not all digits"
-}
-inspect(result, content="all digits")
+```mbt check
+///|
+test {
+  // Bare regex matches entire target
+  let result = if "12345" lexmatch? "[[:digit:]]+" {
+    "all digits"
+  } else {
+    "not all digits"
+  }
+  inspect(result, content="all digits")
 
-// Fails if there's extra content
-let result2 = if "123abc" lexmatch? "\d+" {
-  "all digits"
-} else {
-  "not all digits"
-}
-inspect(result2, content="not all digits")
+  // Fails if there's extra content
+  let result2 = if "123abc" lexmatch? "[[:digit:]]+" {
+    "all digits"
+  } else {
+    "not all digits"
+  }
+  inspect(result2, content="not all digits")
 
-// Empty string pattern matches empty target
-let result3 = if "" lexmatch? "" { "empty" } else { "not empty" }
-inspect(result3, content="empty")
+  // Empty string pattern matches empty target
+  let result3 = if "" lexmatch? "" { "empty" } else { "not empty" }
+  inspect(result3, content="empty")
+}
 ```
 
 **Two-part (left anchored only)** — matches prefix, rest captures remainder:
 
-```mbt test
-// Two-part: matches prefix, captures rest
-lexmatch "123abc" with longest {
-  ("\d+" as digits, rest) => {
-    inspect(digits, content="123")
-    inspect(rest, content="abc")
+```mbt check
+///|
+test {
+  // Two-part: matches prefix, captures rest
+  lexmatch "123abc" with longest {
+    ("[[:digit:]]+" as digits, rest) => {
+      inspect(digits, content="123")
+      inspect(rest, content="abc")
+    }
+    _ => fail("should match")
   }
-  _ => fail("should match")
-}
 
-// Two-part must start from beginning
-let matched = "abc123" lexmatch? ("\d+", _) with longest
-inspect(matched, content="false") // digits not at start
+  // Two-part must start from beginning
+  let matched = "abc123" lexmatch? ("[[:digit:]]+", _) with longest
+  inspect(matched, content="false") // digits not at start
+}
 ```
 
 **Three-part (no anchoring)** — prefix skips content, regex matches anywhere.
 
 **Note:** Three-part form is only available without `with longest`:
 
-```mbt test
-// Three-part: skip prefix, find pattern anywhere (no 'with longest')
-lexmatch "hello ERROR123 world" {
-  (_, "ERROR" ("\d+" as code), rest) => {
-    inspect(code, content="123")
-    inspect(rest, content=" world")
+```mbt check
+///|
+test {
+  // Three-part: prefix binds the skipped content, find pattern anywhere (no 'with longest')
+  lexmatch "hello ERROR123 world" {
+    (prefix, "ERROR" ("[[:digit:]]+" as code), rest) => {
+      inspect(prefix, content="hello ")
+      inspect(code, content="123")
+      inspect(rest, content=" world")
+    }
+    _ => fail("should not match")
   }
-  _ => fail("should match")
-}
 
-// Three-part can find pattern in middle of string
-lexmatch "prefix>>>MARKER<<<suffix" {
-  (_, "MARKER", rest) => inspect(rest, content="<<<suffix")
-  _ => fail("should match")
+  // Three-part can find pattern in middle of string
+  lexmatch "prefix>>>MARKER<<<suffix" {
+    (prefix, "MARKER", rest) => {
+      inspect(prefix, content="prefix>>>")
+      inspect(rest, content="<<<suffix")
+    }
+    _ => fail("should not match")
+  }
 }
 ```
 
@@ -219,43 +243,50 @@ lexmatch "prefix>>>MARKER<<<suffix" {
 
 **Default (without `with` clause)** — the standard form for general string processing:
 
-```mbt test
-// Default strategy: first match, patterns tried in order
-lexmatch "hello world" {
-  ("hello", rest) => inspect(rest, content=" world")
-  _ => fail("should match")
-}
-
-// Three-part form is available in default mode
-lexmatch "abc123def" {
-  (_, "\d+" as digits, rest) => {
-    inspect(digits, content="123")
-    inspect(rest, content="def")
+```mbt check
+///|
+test {
+  // Default strategy: first match, patterns tried in order
+  lexmatch "hello world" {
+    ("hello", rest) => inspect(rest, content=" world")
+    _ => fail("should match")
   }
-  _ => fail("should match")
+
+  // Three-part form is available in default mode
+  lexmatch "abc123def" {
+    (prefix, "[[:digit:]]+" as digits, rest) => {
+      inspect(prefix, content="abc")
+      inspect(digits, content="123")
+      inspect(rest, content="def")
+    }
+    _ => fail("should match")
+  }
 }
 ```
 
 **`with longest`** — specialized for programming language lexers:
 
-```mbt test
-// With longest: all branches are checked, longest match wins
-// Here "[a-z]+" matches "ifx" (3 chars) vs "if" matches only 2 chars
-// So the second branch is selected because it matches longer
-lexmatch "ifx" with longest {
-  ("if", _) => fail("should not match - 'if' is only 2 chars")
-  ("[a-z]+" as id, rest) => {
-    inspect(id, content="ifx") // matched all 3 chars
-    inspect(rest, content="")
+```mbt check
+///|
+test {
+  // With longest: all branches are checked, longest match wins
+  // Here "[a-z]+" matches "ifx" (3 chars) vs "if" matches only 2 chars
+  // So the second branch is selected because it matches longer
+  lexmatch "ifx" with longest {
+    ("if", _) => fail("should not match - 'if' is only 2 chars")
+    ("[a-z]+" as id, rest) => {
+      inspect(id, content="ifx") // matched all 3 chars
+      inspect(rest, content="")
+    }
+    _ => fail("should match")
   }
-  _ => fail("should match")
-}
 
-// Compare with default (first match): "if" branch would win
-lexmatch "ifx" {
-  ("if", rest) => inspect(rest, content="x") // first match wins
-  ("[a-z]+", _) => fail("should not reach - first branch matched")
-  _ => fail("should match")
+  // Compare with default (first match): "if" branch would win
+  lexmatch "ifx" {
+    ("if", rest) => inspect(rest, content="x") // first match wins
+    ("[a-z]+", _) => fail("should not reach - first branch matched")
+    _ => fail("should match")
+  }
 }
 ```
 
@@ -279,19 +310,39 @@ lexmatch "ifx" {
   - `\xhh`: Matches a character with hexadecimal value `hh` (`hh` is two hexadecimal digits)
   - `\uhhhh`: Matches a character with Unicode code point `hhhh` (`hhhh` is four hexadecimal digits). Note that this escape sequence is invalid when the target is `BytesView`.
   - `\u{h...}`: Matches a character with Unicode code point `h...` (`h...` is one or more hexadecimal digits). Note that this escape sequence is invalid when the target is `BytesView`.
-- **Character Classes**:
-  - `\s`: Matches any whitespace character in the ASCII range, equivalent to `[ \t\r\n\f\v]`
-  - `\S`: Matches any non-whitespace character in the ASCII range, equivalent to `[^ \t\r\n\f\v]`
-  - `\d`: Matches any digit character in the ASCII range, equivalent to `[0-9]`
-  - `\D`: Matches any non-digit character in the ASCII range, equivalent to `[^0-9]`
-  - `\w`: Matches any word character in the ASCII range, equivalent to `[a-zA-Z0-9_]`
-  - `\W`: Matches any non-word character in the ASCII range, equivalent to `[^a-zA-Z0-9_]`
-- **Character Sets**:
-  - `[abc]`: Matches character `a`, `b`, or `c`
-  - `[a-z]`: Matches any character from `a` to `z`
-  - `[^abc]`: Matches any character except `a`, `b`, and `c`
-  - `[^a-z]`: Matches any character not in the range `a` to `z`
-  - `[\d\s]`: Matches any digit or whitespace character
+  - **Character Classes (deprecated escapes and POSIX alternatives)**:
+    - Note: The common escape sequences `\s`, `\S`, `\d`, `\D`, `\w`, and `\W` are deprecated in `lexmatch` regexes. Use the POSIX-style classes below instead. All POSIX classes here operate on the ASCII range only.
+    - Supported POSIX character classes (only recognized inside a bracket expression `[...]`):
+      - `[:ascii:]` — ASCII characters U+0000..U+007F. Example: `[[:ascii:]]` matches any ASCII codepoint.
+      - `[:lower:]` — ASCII lowercase letters `a`–`z`. Example: `[[:lower:]]` matches `a`, `b`, ..., `z`.
+      - `[:upper:]` — ASCII uppercase letters `A`–`Z`. Example: `[[:upper:]]` matches `A`, `B`, ..., `Z`.
+      - `[:alpha:]` — ASCII letters, equivalent to `[[:lower:][:upper:]]`.
+      - `[:digit:]` — ASCII digits `0`–`9`. Example: `[[:digit:]]` matches `0`..`9`.
+      - `[:xdigit:]` — ASCII hexadecimal digits `0`–`9`, `A`–`F`, `a`–`f` (equivalent to `[0-9A-Fa-f]`).
+      - `[:alnum:]` — ASCII alphanumeric characters, equivalent to `[[:alpha:][:digit:]]`.
+      - `[:blank:]` — ASCII horizontal whitespace: space and tab (equivalent to `[ \t]`).
+      - `[:space:]` — ASCII whitespace characters (space, tab, newline, carriage return, form feed, vertical tab) — use for matching general ASCII whitespace.
+      - `[:word:]` — ASCII word characters, equivalent to `[A-Za-z0-9_]`.
+    - Important usage rule: POSIX classes are only recognized when placed inside a character class. Use `[[:digit:]]`, not `[:digit:]` alone; the latter is not a valid character class.
+    - Common mappings (for porting existing patterns):
+      - `\d`  → `[[:digit:]]`
+      - `\D`  → `[^[:digit:]]`
+      - `\s`  → `[[:space:]]`
+      - `\S`  → `[^[:space:]]`
+      - `\w`  → `[[:word:]]`
+      - `\W`  → `[^[:word:]]`
+    - Examples and tips:
+      - Match a single hex digit: `[[:xdigit:]]` (equivalent to `[0-9A-Fa-f]`).
+      - Match one or more ASCII letters: `[[:alpha:]]+`.
+      - Combine classes: `[[:alpha:][:digit:]]` matches any ASCII letter or digit (same as `[[:alnum:]]`).
+      - Negation: `[^[:space:]]` matches any character that is not ASCII whitespace.
+    - Rationale: restricting these classes to ASCII keeps `lexmatch` behavior predictable for `BytesView` targets and avoids locale/Unicode category complexity.
+  - **Character Sets**:
+    - `[abc]`: Matches character `a`, `b`, or `c`
+    - `[a-z]`: Matches any character from `a` to `z`
+    - `[^abc]`: Matches any character except `a`, `b`, and `c`
+    - `[^a-z]`: Matches any character not in the range `a` to `z`
+    - `[[:digit:][:space:]]`: Matches any digit or whitespace character (use POSIX classes inside the brackets)
 - **Quantifiers**:
   - `*`: Matches the preceding sub-expression zero or more times
   - `+`: Matches the preceding sub-expression one or more times
@@ -328,29 +379,6 @@ The `lexmatch` expression works similarly to the `match` expression, but with th
   - Scoped modifier syntax (like `(?i:...)`) can only enable one modifier per group. For example, `(?im:...)` is not currently supported. Negated modifiers like `(?-i:...)` are also not supported. Currently, the only supported modifier is `i` (case-insensitive).
   - For future consideration of adding interpolation support, regex literals do not support using "\{" to match the left brace character. Similarly, the right brace character does not support using "\}" to match. If you need to match brace characters, please use literal characters `[{]` and `[}]`.
 
-### Usage Tips
-
-#### Searching for a Marker in a String
-
-```mbt check
-///|
-pub fn search_marker(str : StringView) -> StringView? {
-  for curr = str {
-    lexmatch curr with longest {
-      "" => return None
-      ("MARKER", right) => return Some(right)
-      (".", rest) => continue rest
-      _ => panic()
-    }
-  }
-}
-```
-```mbt test
-inspect(
-  search_marker("This is a test. MARKER Here is the rest."),
-  content="Some(\" Here is the rest.\")",
-)
-```
 ### FAQ
 
 **Q: Why not use regex patterns directly in `match` expressions?**
