@@ -123,7 +123,7 @@ for curr = log[:] {
 - **Match Strategy**: The strategy used to match patterns.
   - **Default** (without `with` clause): Uses first match semantics — branches are tried in order and the first matching branch is taken. This is the most common form for general string processing.
   - `with longest`: Uses longest match semantics — all branches are evaluated and the branch whose regex matches the **longest prefix** is selected. If multiple branches match the same length, the first one wins. This is primarily used for building **programming language lexers** where maximal munch is desired.
-  
+
 
 - **Catch-all case**: A branch whose left side is a variable or wildcard `_`, which can match any target. It must be placed at the end of the `lexmatch` branches to handle unmatched cases.
 
@@ -328,29 +328,6 @@ The `lexmatch` expression works similarly to the `match` expression, but with th
   - Scoped modifier syntax (like `(?i:...)`) can only enable one modifier per group. For example, `(?im:...)` is not currently supported. Negated modifiers like `(?-i:...)` are also not supported. Currently, the only supported modifier is `i` (case-insensitive).
   - For future consideration of adding interpolation support, regex literals do not support using "\{" to match the left brace character. Similarly, the right brace character does not support using "\}" to match. If you need to match brace characters, please use literal characters `[{]` and `[}]`.
 
-### Usage Tips
-
-#### Searching for a Marker in a String
-
-```mbt check
-///|
-pub fn search_marker(str : StringView) -> StringView? {
-  for curr = str {
-    lexmatch curr with longest {
-      "" => return None
-      ("MARKER", right) => return Some(right)
-      (".", rest) => continue rest
-      _ => panic()
-    }
-  }
-}
-```
-```mbt test
-inspect(
-  search_marker("This is a test. MARKER Here is the rest."),
-  content="Some(\" Here is the rest.\")",
-)
-```
 ### FAQ
 
 **Q: Why not use regex patterns directly in `match` expressions?**
